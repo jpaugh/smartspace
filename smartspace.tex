@@ -1,0 +1,140 @@
+% \smartspace: Smartly insert whitespace after a control sequence.
+%
+% Narrator: It is tempting to abbreviate a frequently use phrase or
+% command to a single control sequence:
+%
+%   \def\TeXie{\TeX{}ophiliac}
+%   \def\ignorance{\TeX{}ophobia}
+%
+%   My psychologist said there's no way to cure a \TeXie~---
+%   but neither is there a cure for \ignorance!
+%
+% But to do this liberally can introduce whitespace errors, where the
+% following whitespace is missing:
+%
+%   \TeXie{}s unite!
+%   % Hang on, lemme fix the kerning...
+%
+% These bugs are subtle in the source~--- but not in the output! And the
+% more heavily you use such abbreviations, the easier it is to fudge.
+% This shouldn't be: abbreviations should make life easier, not
+% harder...
+%
+% [Enter \smartspace, stage left]
+%
+%   \def\TeXie{\Tex{}ohpiliac\smartspace}
+%
+%   A \TeXie can hack it.
+%
+% (Narrator continues) Now, `\TeXies' gobbles up the space, as usual:
+% but then \smartspace adds it back
+%
+% Inner voice: But wait! I've already paid the price: my .tex files are
+% littered with `\cs\ ' already! Won't that give me /two/ spaces?
+%
+% Narrator: No, no it won't. \smartspace checks the next token to decide
+% whether to inject a space or not: if it finds  `\ ', `\space', or
+% punctuation, it doesn't inject an (extra) space.
+%
+% Inner voice: Okay, sure. But what if I don't want a space in other
+% situations? Like when I say
+%
+%   \TeXie{}s unite!
+%
+% Narrator: In such special cases, you can suffix the macro with
+% `\nospace', which tells \smartspace to do nothing, even against its
+% better judgement: you da' boss!
+%
+%   \TeXie\nospace{}s unite!
+%
+% Inner voice (saucily): That's just awkward!
+%
+% Narrator (obviously miffed): Define another macro!
+%
+%   \def\TeXie{\Tex{}ohpiliac\smartspace}
+%   \def\TeXies{\TeXie\nospace{}s}
+%
+% Better still, define a generic abbreviation macro, if you please!
+%
+%   \def\abbrev#1#2{%
+%       \expandafter\def\csname #1\expandafter{#2}
+%   }
+%   \abbrev{TeXie}{\Tex{}ohpiliac\smartspace}
+%   \abbrev{TeXies}{\TeXie\nospace{}s}
+%
+%   \TeXies unite!
+%
+% Inner voice (false bravado): Ayhha!, I couldda done that!
+%
+% Epilogue: Sometimes, \smartspace chokes, with one of several
+% quite cryptic TeX errors. But the problem usually comes down to one
+% thing:
+%
+%   Since \smartspace checks the next token, it must be preceded by at
+%   least one token:
+%
+%       - \smartspace cannot appear at the end of input; remember to put
+%       `\bye' (or even `\nospace' or `\relax') at the end.
+%
+%       - \emph{\TeXie} fails! Use \emph{\TeXie\nospace} instead
+%
+% After reading that list, you may think twice about using \smartspace,
+% but consider this: when \smartspace chokes, you get an error message
+% that~--- after a little (initial) confusion~--- can readily be fixed;
+% when you choke, you get a document full of typos.
+%
+% In a longer document, one has many choices as to when to use
+% \smartspace, and some judicious use can alleviate most problems.
+% In particular, \smartspace is not needed with any macro that takes its
+% arguments in braces, since TeX itself can then guess the spacing
+% correctly. So, if you've got the following definitions for your new
+% book~--- or Master's theses~--- don't change them:
+%
+%   \def\term#1{\emph{#1}}%     Term that I explain in my book
+%   \def\work#1{\cite{#1}}%     Somebody's work that I mention
+%
+% But, /do/ add \smartspace to the following:
+%
+%   \def\lp{\work{my-last-paper}\smartspace}
+%   \def\oneHump{\term{One-Hump Camel}\smartspace}
+%   ...
+%   My \oneHump can beat your \term{Asparagus} any day!
+%
+% This way, you'll avoid all issues with \smartspace where TeX can
+% handle spacing correctly, and you'll avoid all spacing issues where
+% TeX can't.
+%
+% What is your thesis /about/, anyway?
+{\endlinechar=-1
+\catcode`\@11
+
+\global\let\nospace=\empty
+\long\gdef\smartspace#1{
+    \def\tmp@space{\space #1}
+    \def\tmp@nospace{#1}
+    \let\next=\tmp@space
+    \ifx\nospace#1
+        \let\next=\tmp@nospace
+    \else
+        \ifx\ #1% Explicit space
+            \let\next=\tmp@nospace
+        \else
+            \ifx\space#1% Explicit space
+                \let\next=\tmp@nospace
+            \else
+                \ifcat\noexpand#1\relax
+                    % Other control sequences
+                \else
+                    \ifcat;#1% Punctuation
+                        \ifx(#1
+                        \else
+                            \let\next=\tmp@nospace
+                        \fi
+                    \fi
+                \fi
+            \fi
+        \fi
+    \fi
+    \next
+}
+}%\endlinechar
